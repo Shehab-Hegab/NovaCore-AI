@@ -12,6 +12,11 @@
 
 ## 📸 Interface Preview
 
+
+
+<img width="1405" height="901" alt="image" src="https://github.com/user-attachments/assets/fe835794-478e-44d9-bc7e-63d78b160605" />
+
+
 *(You should take screenshots of your app and put them in a folder named 'screenshots' in your repo, then link them here. For now, use this placeholder)*
 
 | **Data Ingestion** | **Model Engine** |
