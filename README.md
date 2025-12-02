@@ -9,6 +9,8 @@
 
 <br />
 
+🔗 **Project Demo:** [Watch on LinkedIn](https://www.linkedin.com/posts/shehab-hegab%F0%9F%87%B5%F0%9F%87%B8-5303491b7_machinelearning-automl-python-ugcPost-7401725960171102208-U77m?utm_source=share&utm_medium=member_desktop)
+
 <!-- MAIN HERO IMAGE -->
 <img src="https://github.com/user-attachments/assets/4437bdb0-f67d-46ef-8d3e-df77d9ea5adc" alt="NovaCore Dashboard Banner" width="100%" style="border-radius: 10px; border: 2px solid #8B5CF6; box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);">
 
