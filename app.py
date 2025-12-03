@@ -376,75 +376,131 @@ def advanced_eda_page():
     
     st.markdown('</div>', unsafe_allow_html=True)
     
+    # Use all data for accurate visualization
+    df_viz = df
+    
     # Generate Plot
+    fig = None
     try:
         if chart_type == "Scatter":
             fig = px.scatter(
-                df, x=x_axis, y=y_axis, color=color_col,
+                df_viz, x=x_axis, y=y_axis, color=color_col,
                 template="plotly_dark",
                 color_continuous_scale="Viridis"
             )
+        
         elif chart_type == "Line":
             fig = px.line(
-                df, x=x_axis, y=y_axis, color=color_col,
+                df_viz, x=x_axis, y=y_axis, color=color_col,
                 template="plotly_dark"
             )
+        
         elif chart_type == "Bar":
-            fig = px.bar(
-                df, x=x_axis, y=y_axis, color=color_col,
-                template="plotly_dark",
-                color_continuous_scale="Plasma"
-            )
+            # Check if we need aggregation
+            if df_viz[x_axis].dtype in ['object', 'category'] and df_viz[y_axis].dtype in ['int64', 'float64']:
+                # Aggregate for categorical x-axis
+                bar_data = df_viz.groupby(x_axis, as_index=False)[y_axis].sum()
+                fig = px.bar(bar_data, x=x_axis, y=y_axis, color=color_col, template="plotly_dark")
+            else:
+                fig = px.bar(df_viz, x=x_axis, y=y_axis, color=color_col, template="plotly_dark")
+        
         elif chart_type == "3D Scatter":
             if len(df.columns) >= 3:
                 z_axis = st.selectbox("🔴 Z-Axis", df.columns.tolist())
                 fig = px.scatter_3d(
-                    df, x=x_axis, y=y_axis, z=z_axis, color=color_col,
+                    df_viz, x=x_axis, y=y_axis, z=z_axis, color=color_col,
                     template="plotly_dark"
                 )
             else:
-                st.error("Need at least 3 columns for 3D plot")
+                st.error("❌ Need at least 3 columns for 3D plot")
                 return
+        
         elif chart_type == "Box":
             fig = px.box(
-                df, x=x_axis, y=y_axis, color=color_col,
+                df_viz, x=x_axis, y=y_axis, color=color_col,
                 template="plotly_dark"
             )
+        
         elif chart_type == "Violin":
-            fig = px.violin(df, x=x_axis, y=y_axis, color=color_col, template="plotly_dark")
+            fig = px.violin(df_viz, x=x_axis, y=y_axis, color=color_col, template="plotly_dark")
+        
         elif chart_type == "Histogram":
-            fig = px.histogram(df, x=x_axis, color=color_col, template="plotly_dark", marginal="box")
+            # Histogram only needs x-axis
+            fig = px.histogram(df_viz, x=x_axis, color=color_col, template="plotly_dark", marginal="box")
+        
         elif chart_type == "Density Heatmap":
-            fig = px.density_heatmap(df, x=x_axis, y=y_axis, template="plotly_dark", color_continuous_scale="Purples")
+            # Both axes must be numeric
+            if df_viz[x_axis].dtype not in ['int64', 'float64'] or df_viz[y_axis].dtype not in ['int64', 'float64']:
+                st.error("❌ Density Heatmap requires both X and Y axes to be numeric")
+                return
+            fig = px.density_heatmap(df_viz, x=x_axis, y=y_axis, template="plotly_dark", color_continuous_scale="Purples")
+        
         elif chart_type == "Pie Chart":
-            fig = px.pie(df, names=x_axis, values=y_axis, template="plotly_dark", color_discrete_sequence=px.colors.sequential.Purp)
+            # Validate: x_axis = category, y_axis = numeric
+            if df_viz[y_axis].dtype not in ['int64', 'float64']:
+                st.error(f"❌ Pie chart Y-axis must be numeric. '{y_axis}' is {df_viz[y_axis].dtype}")
+                return
+            # Aggregate and limit to top 20 categories
+            pie_data = df_viz.groupby(x_axis, as_index=False)[y_axis].sum().nlargest(20, y_axis)
+            fig = px.pie(pie_data, names=x_axis, values=y_axis, template="plotly_dark", 
+                        color_discrete_sequence=px.colors.sequential.Purp,
+                        title=f"Top 20 {x_axis} by {y_axis}")
+        
         elif chart_type == "Sunburst":
-            fig = px.sunburst(df, path=[x_axis], values=y_axis, template="plotly_dark", color_discrete_sequence=px.colors.sequential.Purp)
+            if df_viz[y_axis].dtype not in ['int64', 'float64']:
+                st.error(f"❌ Sunburst Y-axis must be numeric. '{y_axis}' is {df_viz[y_axis].dtype}")
+                return
+            # Aggregate and limit
+            sun_data = df_viz.groupby(x_axis, as_index=False)[y_axis].sum().nlargest(30, y_axis)
+            fig = px.sunburst(sun_data, path=[x_axis], values=y_axis, template="plotly_dark",
+                            color_discrete_sequence=px.colors.sequential.Purp)
+        
         elif chart_type == "Treemap":
-            fig = px.treemap(df, path=[x_axis], values=y_axis, template="plotly_dark", color_discrete_sequence=px.colors.sequential.Purp)
+            if df_viz[y_axis].dtype not in ['int64', 'float64']:
+                st.error(f"❌ Treemap Y-axis must be numeric. '{y_axis}' is {df_viz[y_axis].dtype}")
+                return
+            # Aggregate and limit
+            tree_data = df_viz.groupby(x_axis, as_index=False)[y_axis].sum().nlargest(30, y_axis)
+            fig = px.treemap(tree_data, path=[x_axis], values=y_axis, template="plotly_dark",
+                           color_discrete_sequence=px.colors.sequential.Purp)
+        
         elif chart_type == "Funnel":
-            fig = px.funnel(df, x=y_axis, y=x_axis, template="plotly_dark")
+            if df_viz[y_axis].dtype not in ['int64', 'float64']:
+                st.error(f"❌ Funnel Y-axis must be numeric. '{y_axis}' is {df_viz[y_axis].dtype}")
+                return
+            # Aggregate
+            funnel_data = df_viz.groupby(x_axis, as_index=False)[y_axis].sum().sort_values(y_axis, ascending=False)
+            fig = px.funnel(funnel_data, x=y_axis, y=x_axis, template="plotly_dark")
+        
         elif chart_type == "Area":
-            fig = px.area(df, x=x_axis, y=y_axis, color=color_col, template="plotly_dark")
+            fig = px.area(df_viz, x=x_axis, y=y_axis, color=color_col, template="plotly_dark")
+        
         elif chart_type == "Bubble":
-            size_col = st.selectbox("Bubble Size", df.select_dtypes(include=[np.number]).columns.tolist())
-            fig = px.scatter(df, x=x_axis, y=y_axis, size=size_col, color=color_col, template="plotly_dark")
+            numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+            if len(numeric_cols) < 2:
+                st.error("❌ Bubble chart requires at least 2 numeric columns")
+                return
+            size_col = st.selectbox("🔵 Bubble Size", numeric_cols)
+            fig = px.scatter(df_viz, x=x_axis, y=y_axis, size=size_col, color=color_col, 
+                           template="plotly_dark", size_max=60)
         
         # Update layout with cyberpunk theme
-        fig.update_layout(
-            plot_bgcolor='#0E1117',
-            paper_bgcolor='#0E1117',
-            font=dict(color='#FAFAFA'),
-            title=dict(
-                text=f"{chart_type} Plot: {y_axis} vs {x_axis}",
-                font=dict(size=20, color='#8B5CF6')
+        if fig:
+            fig.update_layout(
+                plot_bgcolor='#0E1117',
+                paper_bgcolor='#0E1117',
+                font=dict(color='#FAFAFA'),
+                title=dict(
+                    text=f"{chart_type}: {y_axis} vs {x_axis}" if chart_type != "Histogram" else f"{chart_type}: {x_axis}",
+                    font=dict(size=20, color='#8B5CF6')
+                )
             )
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
+            
+            st.plotly_chart(fig, use_container_width=True)
         
     except Exception as e:
         st.error(f"❌ Error creating plot: {str(e)}")
+        st.info("💡 Tip: Make sure you select appropriate column types for this chart")
     
     # Correlation Matrix
     st.markdown("---")
